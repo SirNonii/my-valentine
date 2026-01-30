@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Will you be my Valentine?</title>
+<style>
+  :root{
+    --card-bg: rgba(255,255,255,0.95);
+    --accent: #ff4d6d;
+    --muted: #6b6b6b;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;}
+  body{
+    background: radial-gradient(circle at 10% 10%, #fff0f2 0%, #ffdfe6 10%, #ffeef4 30%, #ffefef 100%);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+
+  /* center card */
+  .card{
+    width: min(720px,94%);
+    background: var(--card-bg);
+    border-radius:18px;
+    padding:34px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    text-align:center;
+    position:relative;
+    z-index: 5;
+  }
+  h1{ margin:0 0 8px; font-size:28px; color:var(--accent);}
+  p.lead{ color:var(--muted); margin:0 0 18px; }
+
+  /* typing text */
+  .type {
+    font-size:20px;
+    min-height:28px;
+    margin-bottom:18px;
+    color:#333;
+    font-weight:600;
+  }
+  .btn{
+    background: linear-gradient(90deg,#ff6b89,#ff3b6b);
+    border:none;color:white;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:16px;
+    box-shadow: 0 6px 18px rgba(255,60,108,0.18);
+  }
+  .btn:active{ transform: translateY(1px); }
+
+  /* accept/decline small buttons */
+  .actions{ margin-top:14px; display:flex; gap:12px; justify-content:center; }
+  .btn-ghost{ background:transparent;border:2px solid var(--accent); color:var(--accent); padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; }
+
+  /* floating hearts */
+  .heart {
+    position: absolute;
+    font-size: 22px;
+    opacity: 0.9;
+    animation: floatUp linear infinite;
+    pointer-events:none;
+    transform: translateY(0);
+    text-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(20px) scale(0.9); opacity: 0;}
+    10% { opacity: 0.9; }
+    100% { transform: translateY(-110vh) scale(1.1); opacity: 0; }
+  }
+
+  /* final message overlay */
+  .overlay{
+    position: fixed; inset:0; display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35); z-index:40;
+    visibility:hidden; opacity:0; transition:opacity .25s;
+  }
+  .overlay.show{ visibility:visible; opacity:1; }
+  .modal{ background:white; padding:28px; border-radius:14px; text-align:center; width:min(560px,92%); box-shadow:0 16px 50px rgba(0,0,0,0.25); }
+  .modal h2{ color:var(--accent); margin:0 0 8px; }
+  .small{ color:var(--muted); margin-top:8px; font-size:14px; }
+
+  footer.small-print{ font-size:12px; color:#999; margin-top:12px; }
+</style>
+</head>
+<body>
+  <div class="card" role="main" aria-labelledby="title">
+    <h1 id="title">A little surprise for my Bae 💌</h1>
+    <p class="lead">I made this just for you — because I Love You Dera ❤️.</p>
+
+    <div class="type" id="typing"></div>
+
+    <button class="btn" id="askBtn">Will you be my Valentine Bae?</button>
+
+    <div class="actions" style="display:none" id="responseButtons">
+      <button class="btn" id="yesBtn">YES ❤️</button>
+      <button class="btn-ghost" id="noBtn">NO</button>
+    </div>
+
+  </div>
+
+  <!-- overlay modal shown after accept -->
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="finalTitle">Yay! 💖</h2>
+      <p id="finalMsg">You just made me Smile.</p>
+      <div style="margin-top:12px"><button class="btn" id="closeModal">Close</button></div>
+    </div>
+  </div>
+
+  <!-- confetti lib (small CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+  <script>
+    /* ---------- CUSTOMIZE THESE ---------- */
+    const girlName = "Dera"; // change to the name you want
+    const messages = [
+      `Hey ${girlName} — no matter the distance, it's still you ❤️.`,
+      `Every day apart just makes me miss you more .`,
+      `This is my way of being close to you tonight ❤️.`
+    ];
+    const finalMessage = `One day the distance won't exist — untill then it's always you 💖`;
+    /* ------------------------------------- */
+
+    // typing effect (vanilla)
+    const typingEl = document.getElementById('typing');
+    let msgIndex = 0;
+    function typeMessage(fullText, done){
+      typingEl.textContent = "";
+      let i=0;
+      function step(){
+        if(i<=fullText.length){
+          typingEl.textContent = fullText.slice(0,i);
+          i++;
+          setTimeout(step, 45);
+        } else {
+          setTimeout(done, 900);
+        }
+      }
+      step();
+    }
+    function rotateMessages(){
+      typeMessage(messages[msgIndex], ()=>{
+        msgIndex = (msgIndex+1) % messages.length;
+        rotateMessages();
+      });
+    }
+    rotateMessages();
+
+    // show response buttons when user clicks main CTA
+    const askBtn = document.getElementById('askBtn');
+    const responseButtons = document.getElementById('responseButtons');
+    askBtn.addEventListener('click', ()=>{
+      responseButtons.style.display = "flex";
+      askBtn.style.display = "none";
+      // sprinkle a few hearts
+      createHearts(50);
+    });
+
+    // yes/no handling
+    document.getElementById('yesBtn').addEventListener('click', ()=>{
+      // confetti burst using canvas-confetti
+      confetti({
+        particleCount: 160,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ff6b89', '#ff3b6b', '#ffd1dc', '#ffffff']
+      });
+      // show overlay
+      document.getElementById('finalTitle').textContent = `Yes! 💞`;
+      document.getElementById('finalMsg').textContent = finalMessage;
+      document.getElementById('overlay').classList.add('show');
+    });
+    document.getElementById('noBtn').addEventListener('click', ()=>{
+      // small polite decline animation/message
+      document.getElementById('finalTitle').textContent = `Sikeeeeeee ☺️`;
+      document.getElementById('finalMsg').textContent = `Give me your address and name \u{1F605} let me see something .`;
+      document.getElementById('overlay').classList.add('show');
+    });
+    document.getElementById('closeModal').addEventListener('click', ()=>{
+      document.getElementById('overlay').classList.remove('show');
+    });
+
+    // create animated floating hearts
+    function createHearts(n=12){
+      for(let i=0;i<n;i++){
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.innerHTML = '❤️';
+        const size = Math.round(50 + Math.random()*22);
+        h.style.fontSize = size + 'px';
+        h.style.left = (Math.random()*100) + 'vw';
+        const delay = (Math.random()*2);
+        const dur = (6 + Math.random()*8);
+        h.style.top = '110vh';
+        h.style.animationDuration = dur + 's';
+        h.style.animationDelay = delay + 's';
+        document.body.appendChild(h);
+        // remove after animation completes
+        setTimeout(()=> h.remove(), (delay+dur)*1000 + 600);
+      }
+    }
+
+    // tiny accessibility improvement: let Enter trigger ask
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === "Enter" && askBtn.style.display !== "none"){
+        askBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
